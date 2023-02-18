@@ -88,8 +88,29 @@ pair<int, vector<pair<int, int>>> parse_transfer_list_file(string path) {
 
     return make_pair(max_file_size, all_block_sets);
 }
+// Create empty image with Correct size;
+void initOutputFile(ofstream* output_file_obj, int BLOCK_SIZE) {
+    long long position = max_file_size - 1;
+    unsigned long offset = position % ULONG_MAX;
+    int cycles = position / ULONG_MAX;
+
+    // in the case of images greater than 4GB if its even possible
+    if (cycles > 0) {
+        output_file_obj->seekp(0, ios::beg);
+        for (int i = 0; i < cycles; i++) {
+            output_file_obj->seekp(ULONG_MAX, ios::cur);
+        }
+        output_file_obj->seekp(offset, ios::cur);
+    }
+    else output_file_obj->seekp(position);
+
+    output_file_obj->put('\0');
+    output_file_obj->flush();
+    return;
+}
+
 int main(int argc, char* argv[]) {
-    cout << "\nCredit by blackeangel (blackeangel@mail.ru) special for UKA" << endl;
+    cout << "\nCredits to blackeangel at blackeangel@mail.ru (4PDA.ru) special for UKA tools" << endl;
     cout << "Re-written in C++ by me from xpirt - luxi78 - howellzhu work in python\n" << endl;
 
     if (argc != 4) {
@@ -121,19 +142,26 @@ int main(int argc, char* argv[]) {
         exit(2);
     }
 
-    vector<char> data(BLOCK_SIZE);
+    /*vector<char> data(BLOCK_SIZE);
     for (pair<int, int> block : all_block_sets) {
         int begin = block.first;
         int end = block.second;
         int block_count = end - begin;
+        //cout << "Copying " << block_count << " blocks into position " << begin << "..." << endl;
         output_img.seekp(begin * BLOCK_SIZE); // Position output file
         // Copy one block at a time
+
         while (block_count > 0) {
             new_data_file.read(data.data(), BLOCK_SIZE);
-            //output_img.write(data.data(),sizeof(data.data()));
             output_img.write(data.data(), BLOCK_SIZE);
+            //
+            output_img.seekp(0, ios::end); // если курсор в начале файла, перемещаем курсор в конец файла.
+            int sizef = output_img.tellp(); // функция выдаст конечное положнние курсора относительно начала файла в байтах.
+            cout << "Size: " << sizef << ", block count: " << block_count <<", begin: " << begin << ", end: " << end << endl;
+            //
             block_count -= 1;
         }
+
     }
     // Make file larger if necessary
     if (output_img.tellp() < max_file_size) {
@@ -144,5 +172,49 @@ int main(int argc, char* argv[]) {
     new_data_file.close();
     cout << "Done!" << endl;
 
+    return 0;
+    */
+    initOutputFile(&output_img, BLOCK_SIZE);
+
+    uint8_t* data;
+    bool quiet = false;
+    for (pair<int, int> block : all_block_sets) {
+        long begin = block.first;
+        long end = block.second;
+        long block_count = end - begin;
+        long blocks = block_count * BLOCK_SIZE;
+        long long position = begin * BLOCK_SIZE;
+        unsigned long offset = position % ULONG_MAX;
+        int cycles = position / ULONG_MAX;
+
+        data = (uint8_t*)malloc(blocks);
+        if (data == NULL) {
+            cout << "Out of memory error" << endl;
+            exit(-1);
+        }
+        new_data_file.read((char*)data, blocks);
+
+        // in the case of images greater than 4GB if its even possible
+        if (cycles > 0) {
+            output_img.seekp(0, ios::beg);
+            for (int i = 0; i < cycles; i++) {
+                output_img.seekp(ULONG_MAX, ios::cur);
+            }
+            output_img.seekp(offset, ios::cur);
+        }
+        else output_img.seekp(position);
+
+        if (!quiet) {
+            cout << "Copying " << block_count << " blocks into position " << begin << " with " << blocks << " bytes" << endl;
+        }
+
+        output_img.write((char*)data, blocks);
+        free(data);
+    }
+
+    output_img.close();
+    new_data_file.close();
+
+    cout << "\nDone!" << endl;
     return 0;
 }
