@@ -186,7 +186,7 @@ int main(int argc, char* argv[]) {
     
     initOutputFile(OUTPUT_IMAGE_FILE);
     
-    ofstream output_img(OUTPUT_IMAGE_FILE, ios::binary);
+    fstream output_img(OUTPUT_IMAGE_FILE, ios::in | ios::out | ios::binary);
     if (!output_img.is_open()) {
         cerr << "\e[1;31m" << OUTPUT_IMAGE_FILE << " not found\e[0m" << endl;
         exit(2);
