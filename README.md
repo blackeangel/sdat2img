@@ -16,3 +16,7 @@ This is a simple example on a Linux system:
 ```
 ~$ ./sdat2img system.transfer.list system.new.dat system.img
 ```
+or
+```
+~$ ./sdat2img system.transfer.list system.new.dat
+```
