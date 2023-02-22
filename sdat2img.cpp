@@ -1,5 +1,6 @@
-﻿#include <algorithm>
+#include <algorithm>
 #include <cstdlib>
+#include <climits>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -12,6 +13,29 @@ using namespace std;
 
 vector<pair<int, int>> all_block_sets;
 unsigned int max_file_size;
+
+///standart block function  -->
+std::string& replace(string& str, const string& from, const string& to) {
+	if(!from.empty()) {
+	    size_t start_pos = str.find(from);
+        if(start_pos != string::npos) {
+            str.replace(start_pos, from.length(), to);
+        }
+    }
+    return str;
+}
+
+string& replaceAll(string& str, const string& from, const string& to) {
+    if(!from.empty()) {
+    	size_t start_pos = 0;
+    	while((start_pos = str.find(from, start_pos)) != string::npos) {
+        	str.replace(start_pos, from.length(), to);
+        	start_pos += to.length();
+    	}
+    }
+    return str;
+}
+///standart block function  <--
 
 vector<string> split(const string& s, char delim) {
     stringstream ss(s);
@@ -30,7 +54,7 @@ vector<pair<int, int>> rangeset(string src) {
         num_set.push_back(stoi(item));
     }
     if (num_set.size() != num_set[0] + 1) {
-        cerr << "Error on parsing following data to rangeset:\n" << src << endl;
+        cerr << "\e[1;31mError on parsing following data to rangeset:\n" << src << "\e[0m" << endl;
         exit(1);
     }
     vector<pair<int, int>> result;
@@ -50,19 +74,19 @@ pair<int, vector<pair<int, int>>> parse_transfer_list_file(string path) {
     getline(trans_list, line);
     new_blocks = atoi(line.c_str()); // Second line in transfer list is the total number of blocks we expect to write
     if (version == 1) {
-        cout << "Android 5.0 detected!\n" << endl;
+        cout<<"\n\e[1;33mAndroid 5.0 detected!\n\e[0m"<<endl;
     }
     else if (version == 2) {
-        cout << "Android 5.1 detected!\n" << endl;
+        cout<<"\n\e[1;33mAndroid 5.1 detected!\n\e[0m"<<endl;
     }
     else if (version == 3) {
-        cout << "Android 6.x detected!\n" << endl;
+        cout<<"\n\e[1;33mAndroid 6.x detected!\n\e[0m"<<endl;
     }
     else if (version == 4) {
-        cout << "Android 7.0+ detected!\n" << endl;
+        cout<<"\n\e[1;33mAndroid 7.0+ detected!\n\e[0m"<<endl;
     }
     else {
-        cout << "Unknown Android version!\n" << endl;
+        cout<<"\n\e[1;31mUnknown Android version!\n\e[0m"<<endl;
     }
     if (version >= 2) {
         trans_list.get(); // Third line is how many stash entries are needed simultaneously
@@ -89,42 +113,65 @@ pair<int, vector<pair<int, int>>> parse_transfer_list_file(string path) {
     return make_pair(max_file_size, all_block_sets);
 }
 // Create empty image with Correct size;
-void initOutputFile(ofstream* output_file_obj, int BLOCK_SIZE) {
+void initOutputFile(string output_file) {
+    ofstream output_file_obj (output_file, ios::binary);
     long long position = max_file_size - 1;
+    //cout << "A file will be created with the size " << position << " bytes" <<endl;
     unsigned long offset = position % ULONG_MAX;
     int cycles = position / ULONG_MAX;
 
     // in the case of images greater than 4GB if its even possible
     if (cycles > 0) {
-        output_file_obj->seekp(0, ios::beg);
+        output_file_obj.seekp(0, ios::beg);
         for (int i = 0; i < cycles; i++) {
-            output_file_obj->seekp(ULONG_MAX, ios::cur);
+            output_file_obj.seekp(ULONG_MAX, ios::cur);
         }
-        output_file_obj->seekp(offset, ios::cur);
+        output_file_obj.seekp(offset, ios::cur);
+    } else {
+        
+        output_file_obj.seekp(position);
     }
-    else output_file_obj->seekp(position);
-
-    output_file_obj->put('\0');
-    output_file_obj->flush();
+    
+    output_file_obj.put('\0');
+    output_file_obj.flush();
+    output_file_obj.close();
     return;
 }
 
 int main(int argc, char* argv[]) {
-    cout << "\nCredits to blackeangel at blackeangel@mail.ru (4PDA.ru) special for UKA tools" << endl;
-    cout << "Re-written in C++ by me from xpirt - luxi78 - howellzhu work in python\n" << endl;
-
-    if (argc != 4) {
-        cout << "\nsdat2img - usage is: \n\n      sdat2img <transfer_list> <system_new_file> <system_img>\n\n";
+    cout << "\n\e[1;36m===================================================================\e[0m" << endl;
+    cout << "\e[1;36mDesigned by blackeangel (blackeangel@mail.ru) special for UKA tools\e[0m" << endl;
+    cout << "\e[1;36mRe-written in C++ from xpirt - luxi78 - howellzhu work in python\e[0m" << endl;
+    cout << "\e[1;36m===================================================================\e[0m" << endl;
+    
+    if (argc > 4 || argc < 3 ) {  
+        cout << "\n\e[1;35mUsage:\e[0m" << endl;
+        cout << "\n\e[1;35m     sdat2img <transfer_list> <system_new_file> <system_img>\e[0m" << endl;
+        cout << "\e[1;35mor\e[0m" << endl;
+        cout << "\n\e[1;35m     sdat2img <transfer_list> <system_new_file>\n\e[0m" << endl;
         exit(1);
     }
-
-    char* TRANSFER_LIST_FILE = argv[1];
-    char* NEW_DATA_FILE = argv[2];
-    char* OUTPUT_IMAGE_FILE = argv[3];
-
+    
+    string TRANSFER_LIST_FILE;
+    string NEW_DATA_FILE;
+    string OUTPUT_IMAGE_FILE;
+	
+	if (argc == 4) {  
+    	TRANSFER_LIST_FILE = argv[1];
+    	NEW_DATA_FILE = argv[2];
+    	OUTPUT_IMAGE_FILE = argv[3];
+	}
+	
+	if (argc == 3) {  
+    	TRANSFER_LIST_FILE = argv[1];
+    	NEW_DATA_FILE = argv[2];
+    	string s(argv[2]);
+    	OUTPUT_IMAGE_FILE = replace(s,"new.dat","img");
+	}
+	
     ifstream transfer_list_file(TRANSFER_LIST_FILE);
     if (!transfer_list_file.is_open()) {
-        cout << TRANSFER_LIST_FILE << " not found" << endl;
+        cerr << "\e[1;31m" << TRANSFER_LIST_FILE << " not found\e[0m" << endl;
         exit(2);
     }
     transfer_list_file.close();
@@ -133,15 +180,18 @@ int main(int argc, char* argv[]) {
 
     ifstream new_data_file(NEW_DATA_FILE, ios::binary);
     if (!new_data_file.is_open()) {
-        cout << NEW_DATA_FILE << " not found" << endl;
+        cerr << "\e[1;31m"<< NEW_DATA_FILE << " not found\e[0m" << endl;
         exit(2);
     }
+    
+    initOutputFile(OUTPUT_IMAGE_FILE);
+    
     ofstream output_img(OUTPUT_IMAGE_FILE, ios::binary);
     if (!output_img.is_open()) {
-        cout << OUTPUT_IMAGE_FILE << " not found" << endl;
+        cerr << "\e[1;31m" << OUTPUT_IMAGE_FILE << " not found\e[0m" << endl;
         exit(2);
     }
-
+    
     /*vector<char> data(BLOCK_SIZE);
     for (pair<int, int> block : all_block_sets) {
         int begin = block.first;
@@ -165,16 +215,9 @@ int main(int argc, char* argv[]) {
     }
     // Make file larger if necessary
     if (output_img.tellp() < max_file_size) {
-        output_img.seekp(max_file_size);
+        //output_img.seekp(max_file_size);
     }
-
-    output_img.close();
-    new_data_file.close();
-    cout << "Done!" << endl;
-
-    return 0;
-    */
-    initOutputFile(&output_img, BLOCK_SIZE);
+*/    
 
     uint8_t* data;
     bool quiet = false;
@@ -189,9 +232,10 @@ int main(int argc, char* argv[]) {
 
         data = (uint8_t*)malloc(blocks);
         if (data == NULL) {
-            cout << "Out of memory error" << endl;
+            cerr << "\e[1;31mOut of memory error\e[0m" << endl;
             exit(-1);
         }
+        
         new_data_file.read((char*)data, blocks);
 
         // in the case of images greater than 4GB if its even possible
@@ -202,10 +246,12 @@ int main(int argc, char* argv[]) {
             }
             output_img.seekp(offset, ios::cur);
         }
-        else output_img.seekp(position);
-
+        else {
+            output_img.seekp(position);
+        }
+        
         if (!quiet) {
-            cout << "Copying " << block_count << " blocks into position " << begin << " with " << blocks << " bytes" << endl;
+            //cout << "Copying " << block_count << " blocks into position " << begin << " with " << blocks << " bytes" << endl;
         }
 
         output_img.write((char*)data, blocks);
@@ -215,6 +261,6 @@ int main(int argc, char* argv[]) {
     output_img.close();
     new_data_file.close();
 
-    cout << "\nDone!" << endl;
+    cout << "\n\e[1;32mDone!\e[0m" << endl;
     return 0;
 }
